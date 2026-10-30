@@ -3,6 +3,10 @@
 lexicons/*
 !lexicons/.gitkeep
 
+# The default corpus location. The corpus is never part of this project.
+input/*
+!input/.gitkeep
+
 # Everything the corrector produces. Regenerate by running it.
 lexicon_filtered/
 lexicon_filtered__*/

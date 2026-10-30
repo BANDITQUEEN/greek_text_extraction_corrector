@@ -53,6 +53,9 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pip install el_core_news_md
 ```
 
+Paths here are Windows. On macOS and Linux the interpreter is
+`.venv/bin/python`.
+
 Then fetch the word lists (75 MB, not in this repo). They are the GSoC 2019
 Greek morphological dictionary from eellak:
 
@@ -72,13 +75,18 @@ correction. See the handoff for where they come from.
 
 ## Run
 
+Put the text you want corrected in `input/`, or point the tool at it:
+
 ```
 .venv\Scripts\python.exe lexicon_filter.py --input-dir path\to\text
 ```
 
+The corpus is never part of this repository. `input/` is only the default
+location; `LEXICON_INPUT_DIR` sets it for a whole shell session.
+
 | flag | |
 |---|---|
-| `--input-dir <dir>` | directory of UTF-8 `.txt` to correct |
+| `--input-dir <dir>` | directory of UTF-8 `.txt` to correct (default `./input`) |
 | `--files-from <list>` | only the file names listed, one per line |
 | `--run-name <name>` | write to `lexicon_*__<name>` so a trial never overwrites a real run |
 | `--tagger {spacy,stanza}` | spaCy by default, and you want the default |
@@ -95,6 +103,7 @@ the tuning constants and the word lists all still match.
 ```
 lexicon_filter.py    the corrector
 lexicons/            word lists and name lists (fetched, not tracked)
+input/               default corpus location (not tracked)
 analysis/            measurement scripts written while diagnosing it
 ```
 

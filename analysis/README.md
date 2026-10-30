@@ -3,7 +3,7 @@
 Throwaway measurement scripts written while diagnosing `lexicon_filter.py`.
 Run them from the project root:
 
-    ..\repository_dull\.bench\Scripts\python.exe analysis\<name>.py
+    .venv\Scripts\python.exe analysis\<name>.py
 
 | script | what it answers |
 |---|---|

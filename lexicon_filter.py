@@ -37,7 +37,7 @@ dictionary, eellak, CC BY-SA 3.0. The capitals list earns its size:
 spaCy supplies tokenization, NER and part of speech; the dictionary decides
 every spelling question. Run it with:
 
-    ../repository_dull/.bench/Scripts/python.exe lexicon_filter.py
+    python lexicon_filter.py --input-dir <dir>
 
 Page separators (--- page 12 ---) are preserved verbatim. A finished pass
 checkpoints, and the checkpoint is reused only when inputs, tuning constants
@@ -73,11 +73,9 @@ from rapidfuzz.distance import DamerauLevenshtein  # noqa: E402
 PROJECT_ROOT = Path(__file__).resolve().parent
 OUTPUT_ROOT = PROJECT_ROOT
 
-# The corpus belongs to the extraction benchmark, not here; this only reads
-# it. Override with --input-dir or LEXICON_INPUT_DIR.
-DEFAULT_INPUT_DIR = (
-    PROJECT_ROOT.parent / "repository_dull" / "scraper" / "output" / "pdftext_output"
-)
+# The corpus is never part of this project. Drop text into ./input, or point
+# --input-dir or LEXICON_INPUT_DIR at wherever it actually lives.
+DEFAULT_INPUT_DIR = PROJECT_ROOT / "input"
 INPUT_DIR = Path(os.environ.get("LEXICON_INPUT_DIR") or DEFAULT_INPUT_DIR)
 
 # A named run writes beside the real outputs instead of over them. The
@@ -1316,8 +1314,8 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--input-dir", type=Path, default=None,
-        help="directory of UTF-8 .txt to correct (default: the extraction "
-             "benchmark output in repository_dull)",
+        help="directory of UTF-8 .txt to correct (default: ./input, or "
+             "$LEXICON_INPUT_DIR)",
     )
     return parser.parse_args(argv)
 
