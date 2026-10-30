@@ -119,11 +119,8 @@ SPACY_MODEL = "el_core_news_md"
 STANZA_LANG = "el"
 ROUTE = "el"
 
-# Stanza looked better on capitalised tokens alone, but that sample was
-# selected for the property Stanza handles well. Over the same 30 files end
-# to end it blocks 3,958 corrections spaCy makes, nearly all unambiguous
-# encoding repairs: an unrecognised token draws a PROPN guess and the guess
-# protects the damage. Selectable, not default.
+# Over the same 30 files Stanza blocks 3,958 corrections spaCy makes: an
+# unrecognised token draws a PROPN guess, and the guess protects the damage.
 TAGGER = "spacy"
 
 
@@ -137,24 +134,19 @@ LATIN_RE = re.compile(r"[A-Za-z\u00c0-\u024f]")
 POLYTONIC_COMBINING_MARKS = {"\u0313", "\u0314", "\u0342", "\u0345"}
 
 # OCR renders a breathing as a plain acute and a circumflex as a diaeresis,
-# neither of which lands in the Greek Extended block -- so POLYTONIC_RE cannot
-# see ancient text at all. What it leaves instead is orthography monotonic
-# Greek does not produce: two accents on one word, and a diaeresis.
+# so POLYTONIC_RE never sees ancient text. These marks are what it leaves.
 COMBINING_DIAERESIS = "\u0308"
 ACCENT_MARKS = {"\u0301", "\u0300", "\u0342"}
 
-# A proparoxytone followed by one of these weak pronouns takes a second,
-# genuine tonos on its last syllable -- "ο δάσκαλός μου", "χάρισέ του". The
-# dictionary holds only the single-accent base form, so the corrector read
-# that accent as damage and stripped it: 149 confirmed instances.
+# A proparoxytone before one of these takes a genuine second tonos that the
+# dictionary lacks, so 149 real accents were being stripped as damage.
 ENCLITICS = frozenset(
     "μου σου του της μας σας τους τις το τη τον".split()
 )
 
-# A figure caption set inside a text column is extracted between the halves
-# of a broken word, and the first half fuses to the caption's opening word:
-# "τα συΑφίσα / <caption> / μπεράσματά του" is "τα συμπεράσματά του". The
-# capital is the seam; the caption ends at the next blank line.
+# A caption inside a text column splits a word and fuses its first half to
+# the caption's opening word: "τα συΑφίσα ... μπεράσματά του" is
+# "τα συμπεράσματά του". The internal capital is the seam.
 CAPTION_FUSED_RE = re.compile(
     r"\b([\u03b1-\u03c9\u03ac\u03ad\u03ae\u03af\u03cc\u03cd\u03ce\u03ca\u03cb\u0390\u03b0\u03c2]{1,10})([\u0391-\u03a9\u0386\u0388\u0389\u038a\u038c\u038e\u038f][\u03b1-\u03c9\u03ac\u03ad\u03ae\u03af\u03cc\u03cd\u03ce\u03ca\u03cb\u0390\u03b0\u03c2]+)"
 )
@@ -162,26 +154,18 @@ CAPTION_FUSED_RE = re.compile(
 # universal newlines, so the blank line between caption and body is "\r\n\r\n".
 AFTER_BLANK_RE = re.compile(r"\n[ \t\r]*\n[ \t\r]*([^\W\d_]+)")
 
-# Those marks also occur in ordinary Modern Greek -- legitimately in words
-# like ευρωπαϊκή, spuriously wherever a damaged font put a diaeresis -- which
-# is why the test is per file. Over the Greek lines carrying any such mark the
-# ancient volumes run 18% to 64%, the median file 3.6%. The threshold sits at
-# the low end of that gap so republic, the largest volume, is in at 18.1%.
+# Per file, because these marks occur in ordinary Greek too. Ancient volumes
+# run 18-64% of their Greek lines against a median file's 3.6%.
 MIN_ANCIENT_FILE_SHARE = 0.15
 MIN_ANCIENT_FILE_LINES = 40
 
-# One modern document here is set in a pre-Unicode font whose damage sprays
-# diaereses, so it scores 26.2% above and reads as ancient. A word-medial
-# final sigma tells them apart: Greek never writes one deliberately, so it can
-# only come from a damaged encoding. That file is at 24.7%, the next at 0.62%,
-# the median at 0.0066% -- forty times' headroom on either side.
+# One modern file in a broken font scores 26.2% above and reads as ancient.
+# A word-medial final sigma separates them: Greek never writes one, and that
+# file is at 24.7% against 0.62% for the next.
 MIN_MEDIAL_SIGMA_RATIO = 0.01
 
 # Û˘Á¯ÚËÌ·ÙÔ‰ÔÙÂ›Ù·È is συγχρηματοδοτείται read as Mac Roman instead of Mac
-# Greek; encoding it back and decoding it properly is exact, not a guess.
-# Only these two pairs recover anything here: CP869 finds nothing, so no
-# DOS-era Greek is present, and ELOT 927 agrees with ISO-8859-7 over the
-# range these documents use.
+# Greek. Only these two pairs recover anything on this corpus.
 ENCODING_PAIRS = (("mac_roman", "mac_greek"), ("cp1252", "iso8859_7"))
 
 MIN_CORRECTION_LENGTH = 4
@@ -189,17 +173,14 @@ MAX_CORRECTION_LENGTH = 30
 MIN_CORRECTION_SIMILARITY = 0.80
 MIN_CORRECTION_MARGIN = 0.10
 
-# One edit, at every length. Two destroyed correctly spelled vocabulary that
-# was merely absent from the candidate list -- unhypothetical to hypothetical,
-# θερμοσκόπιο to θερμοκήπιο -- and the margin cannot filter it, since every
-# distance-2 row in the measured run had no runner-up at all.
+# One edit, at every length. Two destroyed correctly spelled words merely
+# missing from the list -- unhypothetical to hypothetical -- and no
+# distance-2 row had a runner-up for the margin to reject it on.
 MAX_CORRECTION_DISTANCE = 1
 
-# A rare entry is evidence that a form exists, not that it is a plausible
-# thing to rewrite another token into. Rare forms stay in the gate, which
-# protects them, and out of the candidate pool, which proposes them. Όικεν at
-# 15 was rewriting the ancient έοικεν into nonsense; τουτ, τροπ and ταυτ were
-# absorbing hyphenation fragments. 25 clears all of them.
+# A rare entry proves a form exists, not that it is worth rewriting another
+# token into. Rare forms stay in the gate and out of the candidate pool: at
+# 15, Όικεν was rewriting the ancient έοικεν into nonsense.
 MIN_CANDIDATE_FREQUENCY = 25
 
 
@@ -289,9 +270,8 @@ class CandidateLexicon:
     def knows(self, surface: str) -> bool:
         """Whether this exact surface is already a dictionary word.
 
-        Exact on purpose: a correction_key match would swallow every
-        misaccented OCR rendering sharing a key with its correct spelling --
-        the one population this stage repairs reliably.
+        Exact on purpose: a correction_key match would also swallow the
+        misaccented OCR renderings this stage exists to repair.
         """
         if not self.known_surfaces:
             return False
@@ -319,8 +299,7 @@ class CandidateLexicon:
         """Every candidate within max_distance of the source word.
 
         Candidates are bucketed by length, and a word that many edits away
-        cannot differ in length by more than that, so only the buckets in
-        that band are searched.
+        cannot differ in length by more, so only that band is searched.
         """
         shortest = max(1, len(source) - max_distance)
         longest = len(source) + max_distance
@@ -361,10 +340,8 @@ def correction_key(text: str, route: str) -> str:
 def _surface_priority(word: str, frequency: int | None) -> tuple[int, int, int, str]:
     """Rank the surface forms competing for one comparison key.
 
-    Frequency decides first. Code point order picks the wrong variant on 62%
-    of keys carrying more than one: it separates αφορά (150,568) from άφορά
-    (2), and στην from the mojibake ςτην, whose final sigma sorts first. A
-    list without counts passes None and degrades to that ordering.
+    Frequency decides first: code point order picks the wrong variant on 62%
+    of contested keys -- άφορά (2) over αφορά (150,568), ςτην over στην.
     """
     return (
         -(frequency or 0),           # most frequent first
@@ -463,12 +440,11 @@ def _restore_cached_case(source: str, cached, route: str):
 def recover_encoding(token: str, lexicon: CandidateLexicon) -> str | None:
     """Re-decode a token that was read with the wrong Greek table.
 
-    Three guards, each needed. Greek already present means not mis-decoded:
-    without the test a real π re-decodes into a real Ι and the dictionary
-    confirms it. Shorter than a correctable word is refused, since the gate
-    holds single letters and every stray • and · then "recovers" into Ξ or α
-    -- 2,957 false recoveries against 763 true. And the result must be in the
-    dictionary, since accented Latin-1 lands in the Greek block by chance.
+    Three guards, each of which was needed:
+    - already carries Greek: never mis-decoded, and a real π would "recover"
+      into a real Ι that the dictionary then confirms
+    - too short: stray • and · recover into Ξ or α, 2,957 false to 763 true
+    - result unknown: accented Latin-1 lands in the Greek block by chance
     """
     if len(token) < MIN_CORRECTION_LENGTH or GREEK_RE.search(token):
         return None
@@ -492,9 +468,7 @@ def find_correction(
     source_key = correction_key(source, route)
     if source_key in cache:
         # Keyed case-insensitively, so it must hold the lexicon's own
-        # surface and never a cased one. Storing the cased result let
-        # whichever variant came first dictate casing for all of them: that
-        # is how lowercase εϊναι came back as ΕΙΝΑΙ.
+        # surface: caching a cased one made lowercase εϊναι return ΕΙΝΑΙ.
         return _restore_cached_case(source, cache[source_key], route)
     if not MIN_CORRECTION_LENGTH <= len(source_key) <= MAX_CORRECTION_LENGTH:
         cache[source_key] = None
@@ -558,10 +532,8 @@ def has_ancient_orthography(word: str) -> bool:
 def is_enclitic_doubling(word: str, next_word: str, lexicon: CandidateLexicon) -> bool:
     """Whether an accent on the word's last letter is a real second tonos.
 
-    A proparoxytone followed by a weak pronoun takes an extra accent on its
-    final syllable -- "υπερβατικότητά του". The dictionary holds only the
-    single-accent base form, so stripping that accent and checking the result
-    against it separates this from an ordinary misplaced accent.
+    A proparoxytone before a weak pronoun takes an extra accent the
+    dictionary lacks ("υπερβατικότητά του"). Strip it and look again.
     """
     if next_word not in ENCLITICS:
         return False
@@ -580,12 +552,9 @@ def is_enclitic_doubling(word: str, next_word: str, lexicon: CandidateLexicon) -
 def next_word_after(tokens, index: int) -> str:
     """The next real word after a token, lowercased, or "" if there is none.
 
-    Not simply tokens[index + 1]. The tagger emits a line break as a token of
-    its own, and these are two-column scans, so "εξώφυλλά\r\nτους" puts "\r\n"
-    in between. Whitespace and punctuation are stepped over.
-
-    Lowercased with lower(), never casefold(): casefold maps a final sigma to
-    a medial one, so "τους" would arrive as "τουσ" and match nothing.
+    Not tokens[index + 1]: the tagger emits a line break as its own token, so
+    "εξώφυλλά\r\nτους" has "\r\n" in between. lower(), never casefold() --
+    casefold maps a final sigma to a medial one, so "τους" becomes "τουσ".
     """
     for candidate in tokens[index + 1 : index + 4]:
         if candidate.text.strip() and any(c.isalnum() for c in candidate.text):
@@ -606,9 +575,7 @@ def rejoin_caption_splits(text: str, lexicon: CandidateLexicon):
 
     Split at the internal capital, join the head to the first word after the
     blank line, and συμπεράσματά comes back. Both halves must be substantial,
-    since short fragments collide into short real words by accident, and the
-    dictionary decides. The one place text moves: nothing is lost, both edits
-    are logged.
+    since short fragments collide into real words. The one place text moves.
     """
     for match in CAPTION_FUSED_RE.finditer(text):
         head = match.group(1)
@@ -632,9 +599,8 @@ def rejoin_caption_splits(text: str, lexicon: CandidateLexicon):
 def apply_caption_repairs(chunks, ancient_pages, lexicon):
     """Rejoin caption-split words in the page text itself, before tagging.
 
-    Must happen to the text, not as a correction span: left broken, the halves
-    reach the dictionary as words in their own right -- μπεράσματά became
-    περάσματα, λετε became λέτε. Returns the chunks and a log of what moved.
+    Left broken, the halves reach the dictionary as words in their own right:
+    μπεράσματά became περάσματα. Returns the chunks and a log of what moved.
     """
     repaired, log = [], []
     for page_idx, chunk in enumerate(chunks):
@@ -666,9 +632,8 @@ def apply_caption_repairs(chunks, ancient_pages, lexicon):
 def score_ancient_files(file_count, flat_chunks, chunk_owner):
     """Mark each page whose file reads as Ancient Greek rather than Modern.
 
-    Scored per file, never per line: these are facing-text editions whose
-    translation and original alternate on the same page, so a line-level
-    decision would hand half of every page to the wrong language.
+    Per file, never per line: these are facing-text editions, so a line-level
+    call would hand half of every page to the wrong language.
     """
     hits = [0] * file_count
     totals = [0] * file_count
@@ -894,9 +859,8 @@ def clear_checkpoint() -> None:
 def _wordlist_entries(path: Path):
     """Yield (surface, frequency) pairs from a UTF-8 word-list file.
 
-    Accepts a bare word, word<TAB>count and word<SPACE>count. A trailing
-    field that is not a plain integer belongs to the word, so a list without
-    counts still loads, with every frequency None.
+    Takes a bare word, word<TAB>count or word<SPACE>count. A trailing field
+    that is not an integer belongs to the word, so uncounted lists still load.
     """
     with path.open("r", encoding="utf-8-sig") as wordlist_file:
         for line in wordlist_file:
@@ -917,9 +881,8 @@ def _wordlist_entries(path: Path):
 def _known_surfaces(path: Path) -> frozenset[str]:
     """Load the exact surface forms that mark a token as already correct.
 
-    Unfiltered by length or script, unlike the candidate list: the gate
-    should protect every real word, including ones this stage would never
-    propose as a correction.
+    Unfiltered by length or script, unlike the candidate list: the gate must
+    protect every real word, including ones never proposed as a correction.
     """
     surfaces = set()
     with path.open("r", encoding="utf-8-sig") as surface_file:
@@ -933,9 +896,8 @@ def _known_surfaces(path: Path) -> frozenset[str]:
 def _paradigm_surfaces(path: Path) -> set[str]:
     """Load every form from a tab-separated inflection paradigm list.
 
-    One line holds a lemma and all its inflected forms -- Ααρών, Ααρώνος,
-    Ααρώντας -- so each field is a surface in its own right. Taking only the
-    first would protect the nominative and expose every other case.
+    One line holds a lemma and all its inflections -- Ααρών, Ααρώνος -- so
+    every field is a surface. Taking only the first would expose the rest.
     """
     surfaces = set()
     with path.open("r", encoding="utf-8-sig") as paradigm_file:
@@ -952,10 +914,8 @@ def _paradigm_surfaces(path: Path) -> set[str]:
 def make_correction_lexicon(route: str):
     """Load the correction candidates and known-word gate for one route.
 
-    The word lists are required, not optional. Earlier revisions fell back to
-    the spaCy model's vector keys, but those are web-scraped and 36.8% of the
-    Greek ones are not words -- including the corruptions this stage exists to
-    repair, which then won accent-collapsed ties against the right spelling.
+    The word lists are required, not optional: the spaCy vector keys they
+    replaced are web-scraped, and 36.8% of the Greek ones are not words.
     """
     candidate_path = LEXICON_DIR / f"{route}.txt"
     known_path = LEXICON_DIR / f"{route}.known.txt"
@@ -1028,9 +988,8 @@ class SpacyTagger:
 class StanzaTagger:
     """Stanza pipeline, batched. No Greek NER exists, so PROPN stands alone.
 
-    Greek multi-word tokens split one surface into several words -- στον
-    becomes σε and τον. Corrections operate on the surface, so tokens are
-    reported whole and count as a proper noun when any of their words is one.
+    Greek multi-word tokens split one surface into several (στον -> σε, τον).
+    Corrections work on the surface, so tokens are reported whole.
     """
 
     name = "stanza"
@@ -1118,10 +1077,8 @@ def protect_with_modern_model(
                 continue
 
             # A Modern Greek lexicon has no authority over an Ancient Greek
-            # text, so nothing inside these files is corrected. Marked
-            # orthography is only the visible part: γίγνονται, γίγνηται and
-            # Πότερον carry no diacritical tell and were rewritten to a modern
-            # spelling, a different mood, and a different word.
+            # text. Marked orthography is only the visible part: γίγνονται
+            # and Πότερον carry no tell and were rewritten anyway.
             if ancient_pages[page_idx]:
                 protected[page_idx].append((token.start, token_end))
                 unresolved[page_idx].append(
@@ -1200,9 +1157,8 @@ def compute_protected(
 def filter_chunk(text: str, replacements) -> str:
     """Apply accepted in-token replacements, keeping everything else.
 
-    Nothing is removed here. A token this stage cannot place is logged as
-    unresolved and passed through untouched, so the filtered text is the
-    input with confident corrections applied and nothing else changed.
+    Nothing is removed. A token this stage cannot place is logged as
+    unresolved and passed through untouched.
     """
     if not replacements:
         return text
@@ -1269,8 +1225,7 @@ def write_unresolved_log(files, per_file_parts, chunk_owner, unresolved) -> int:
     """Write every token kept verbatim for want of a confident match.
 
     These are the tokens an earlier version deleted. Logging them keeps that
-    population visible, so a deletion rule can be argued from evidence rather
-    than reinstated on faith.
+    population visible, so a deletion rule can be argued from evidence.
     """
     fields = [
         "filename", "page", "language", "token", "reason",

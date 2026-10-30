@@ -8,22 +8,10 @@ point `--input-dir` at any directory of UTF-8 text.
 
 **It never deletes a word.** A token it cannot place is passed through
 untouched and written to an unresolved log with the reason it was declined, so
-the population it did not fix stays visible instead of disappearing. An
-earlier version deleted whatever it failed to recognise and lost 493,665
-words, two and a half times the number it corrected, most of them not garbage.
-
-## Results
-
-Over 363 documents — 30,731 pages, 7.7M word tokens:
-
-| | |
-|---|---|
-| corrections made | 33,913 |
-| word tokens deleted | 0 |
-| runtime | ~22 min |
-
-Everything it declined is logged and counted: 546,637 tokens in Ancient Greek
-files, 163,363 with no confident candidate, 91,302 that are not words.
+the population it did not fix stays visible instead of disappearing. Across
+the 7.7M word tokens it was built on, the number deleted is 0. An earlier
+version deleted whatever it failed to recognise and lost 493,665 words, two
+and a half times the number it corrected, most of them not garbage.
 
 ## How it decides
 

@@ -16,12 +16,13 @@ lexicon_filter_checkpoint*.pkl.gz
 lexicon_filter_run.log
 conversion.log
 
-# Python
+# Python. The README says to build .venv in this folder, which is precisely
+# why git must be told to leave it alone: it is hundreds of MB of spaCy
+# models, and it is built, never shared.
 __pycache__/
 *.py[cod]
 .venv/
 venv/
-.bench/
 *.egg-info/
 
 # Editors and OS
