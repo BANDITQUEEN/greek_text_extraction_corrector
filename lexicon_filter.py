@@ -41,7 +41,7 @@ every spelling question. Run it with:
 
 Page separators (--- page 12 ---) are preserved verbatim. A finished pass
 checkpoints, and the checkpoint is reused only when inputs, tuning constants
-and word lists all match. See LEXICON_FILTER_HANDOFF.md for the full record.
+and word lists all match.
 """
 
 from __future__ import annotations

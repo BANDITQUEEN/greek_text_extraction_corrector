@@ -1,4 +1,4 @@
-# garbage_corrector
+# greek_text_extraction_corrector
 
 Repairs Modern Greek text that came out of a PDF wrong.
 
@@ -59,7 +59,8 @@ forms that cannot be derived from the others, since `'είναι'.upper()` is
 `'ΕΊΝΑΙ'`, not the `'ΕΙΝΑΙ'` an OCR'd heading actually contains.
 
 The name and toponym lists under `lexicons/` protect proper nouns from
-correction. See the handoff for where they come from.
+correction: Wiktionary for names and surnames, and GeoNames for toponyms,
+built into inflection paradigms by `analysis/build_gazetteer.py`.
 
 ## Run
 
@@ -92,17 +93,9 @@ the tuning constants and the word lists all still match.
 lexicon_filter.py    the corrector
 lexicons/            word lists and name lists (fetched, not tracked)
 input/               default corpus location (not tracked)
-analysis/            measurement scripts written while diagnosing it
+analysis/            measurement scripts; analysis/README.md says what each
+                     one answers
 ```
-
-## Documentation
-
-- **`LEXICON_FILTER_HANDOFF.md`** — the real record: every design decision and
-  why, the traps found the hard way, what was rejected and on what evidence,
-  and the open items. Read this before changing anything.
-- **`LEXICON_FILTER_ANALYSIS.md`** — a point-in-time analysis of the version
-  before the rewrite, kept because its findings are what drove it.
-- **`analysis/README.md`** — what each measurement script answers.
 
 ## Licensing
 

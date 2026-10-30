@@ -7,6 +7,6 @@ rapidfuzz==3.14.5
 # or
 #   python -m spacy download el_core_news_md
 
-# Optional. Only needed for --tagger stanza, which is not the default
-# and is slower and worse here -- see LEXICON_FILTER_HANDOFF.md.
+# Optional. Only needed for --tagger stanza, which is not the default:
+# it blocks 3,958 corrections spaCy makes on the same files.
 # stanza
