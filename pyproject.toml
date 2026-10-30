@@ -1,0 +1,31 @@
+[project]
+name = "greek-text-extraction-corrector"
+version = "0.1.0"
+description = "Repairs Modern Greek text that came out of a PDF wrong."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "BANDITQUEEN" }]
+keywords = ["greek", "ocr", "spelling-correction", "text-extraction", "spacy"]
+
+dependencies = [
+    "spacy==3.8.14",
+    "rapidfuzz==3.14.5",
+    # Not on PyPI. Declared as a direct URL so it installs with everything
+    # else instead of being a second step people skip.
+    "el_core_news_md @ https://github.com/explosion/spacy-models/releases/download/el_core_news_md-3.8.0/el_core_news_md-3.8.0-py3-none-any.whl",
+]
+
+[project.optional-dependencies]
+# Only for --tagger stanza, which is not the default: it blocks 3,958
+# corrections spaCy makes on the same files.
+stanza = ["stanza>=1.10"]
+
+[project.urls]
+Repository = "https://github.com/BANDITQUEEN/greek_text_extraction_corrector"
+
+# A single script, not a library: uv manages the environment and does not
+# try to build or install the project itself.
+[tool.uv]
+package = false

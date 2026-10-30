@@ -35,14 +35,25 @@ like Greek proves nothing: `•••` re-decodes into `ΞΞΞ` quite happily.
 
 ## Install
 
+With [uv](https://docs.astral.sh/uv/):
+
 ```
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-.venv\Scripts\python.exe -m pip install el_core_news_md
+uv sync
 ```
 
-Paths here are Windows. On macOS and Linux the interpreter is
-`.venv/bin/python`.
+That builds `.venv` from `uv.lock`, pinned down to every transitive
+dependency, and includes the Greek spaCy model. Nothing else to install.
+
+Without uv:
+
+```
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install spacy==3.8.14 rapidfuzz==3.14.5 \
+  https://github.com/explosion/spacy-models/releases/download/el_core_news_md-3.8.0/el_core_news_md-3.8.0-py3-none-any.whl
+```
+
+Python 3.10 or newer. Paths here are Windows; on macOS and Linux the
+interpreter is `.venv/bin/python`.
 
 Then fetch the word lists (75 MB, not in this repo). They are the GSoC 2019
 Greek morphological dictionary from eellak:
@@ -91,6 +102,7 @@ the tuning constants and the word lists all still match.
 
 ```
 lexicon_filter.py    the corrector
+pyproject.toml       dependencies; uv.lock pins them exactly
 lexicons/            word lists and name lists (fetched, not tracked)
 input/               default corpus location (not tracked)
 analysis/            measurement scripts; analysis/README.md says what each
