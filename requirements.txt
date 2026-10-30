@@ -1,0 +1,12 @@
+# Python 3.12
+spacy==3.8.14
+rapidfuzz==3.14.5
+
+# Modern Greek model, not on PyPI:
+#   python -m pip install el_core_news_md
+# or
+#   python -m spacy download el_core_news_md
+
+# Optional. Only needed for --tagger stanza, which is not the default
+# and is slower and worse here -- see LEXICON_FILTER_HANDOFF.md.
+# stanza

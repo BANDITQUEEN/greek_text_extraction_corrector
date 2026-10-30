@@ -1,0 +1,27 @@
+# Word lists -- 81 MB, fetched with the curl commands in the README. The
+# directory itself is kept so those commands have somewhere to write.
+lexicons/*
+!lexicons/.gitkeep
+
+# Everything the corrector produces. Regenerate by running it.
+lexicon_filtered/
+lexicon_filtered__*/
+lexicon_corrections*.csv
+lexicon_unresolved*.csv
+lexicon_filter_checkpoint*.pkl.gz
+lexicon_filter_run.log
+conversion.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.bench/
+*.egg-info/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
