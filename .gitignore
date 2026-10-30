@@ -8,6 +8,7 @@ input/*
 !input/.gitkeep
 
 # Working notes, kept on disk but not published.
+NOTES.md
 LEXICON_FILTER_HANDOFF.md
 LEXICON_FILTER_ANALYSIS.md
 
