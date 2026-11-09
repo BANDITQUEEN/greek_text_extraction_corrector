@@ -1,16 +1,9 @@
-# Word lists -- 81 MB, fetched with the curl commands in the README. The
-# directory itself is kept so those commands have somewhere to write.
-lexicons/*
-!lexicons/.gitkeep
+# Word lists, fetched from the lexicons-v1 release by scripts/fetch_lexicons.py.
+# They are data, never part of the repository.
+lexicons/
 
 # The default corpus location. The corpus is never part of this project.
-input/*
-!input/.gitkeep
-
-# Working notes, kept on disk but not published.
-NOTES.md
-LEXICON_FILTER_HANDOFF.md
-LEXICON_FILTER_ANALYSIS.md
+input/
 
 # Everything the corrector produces. Regenerate by running it.
 lexicon_filtered/
@@ -18,8 +11,6 @@ lexicon_filtered__*/
 lexicon_corrections*.csv
 lexicon_unresolved*.csv
 lexicon_filter_checkpoint*.pkl.gz
-lexicon_filter_run.log
-conversion.log
 
 # Python. The README says to build .venv in this folder, which is precisely
 # why git must be told to leave it alone: it is hundreds of MB of spaCy
@@ -29,6 +20,10 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
 
 # Editors and OS
 .vscode/

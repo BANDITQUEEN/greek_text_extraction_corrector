@@ -35,58 +35,69 @@ like Greek proves nothing: `•••` re-decodes into `ΞΞΞ` quite happily.
 
 ## Install
 
-With [uv](https://docs.astral.sh/uv/):
+Python 3.10 or newer and [uv](https://docs.astral.sh/uv/) are required.
+From the cloned repository:
 
 ```
-uv sync
+uv sync --locked
 ```
 
-That builds `.venv` from `uv.lock`, pinned down to every transitive
-dependency, and includes the Greek spaCy model. Nothing else to install.
+This installs `greek-correct` in `.venv` with the dependencies from `uv.lock`,
+including the Greek spaCy model.
 
-Without uv:
-
-```
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install spacy==3.8.14 rapidfuzz==3.14.5 \
-  https://github.com/explosion/spacy-models/releases/download/el_core_news_md-3.8.0/el_core_news_md-3.8.0-py3-none-any.whl
-```
-
-Python 3.10 or newer. Paths here are Windows; on macOS and Linux the
-interpreter is `.venv/bin/python`.
-
-Then fetch the word lists (75 MB, not in this repo). They are the GSoC 2019
-Greek morphological dictionary from eellak:
+To install a standalone command that you can run from other directories:
 
 ```
-curl -Lo lexicons/el.txt https://raw.githubusercontent.com/eellak/gsoc2019-greek-morpho/master/data/spell_dict_with_freq.dic
-curl -Lo lexicons/el.known.txt https://raw.githubusercontent.com/eellak/gsoc2019-greek-morpho/master/data/spell_dict_with_capitals_no_freq.dic
+uv tool install .
+greek-correct --help
 ```
 
-`el.txt` supplies the correction candidates and their frequencies; the larger
-`el.known.txt` is the gate that decides what is already correct. The gate is
-worth its size: its extra million entries are accent-stripped all-capitals
-forms that cannot be derived from the others, since `'είναι'.upper()` is
-`'ΕΊΝΑΙ'`, not the `'ΕΙΝΑΙ'` an OCR'd heading actually contains.
+If uv reports that its tools directory is missing from PATH, run
+`uv tool update-shell` and open a new terminal. The standalone installation
+uses the package's dependency requirements; `uv sync --locked` uses the exact
+versions in this repository's lockfile.
 
-The name and toponym lists under `lexicons/` protect proper nouns from
-correction: Wiktionary for names and surnames, and GeoNames for toponyms,
-built into inflection paradigms by `analysis/build_gazetteer.py`.
+Then fetch the word lists into `lexicons/`. They are not in the repository:
+they come as one 12 MB zip from this repository's `lexicons-v1` release, and
+the zip is checked against a SHA-256 before anything is unpacked:
+
+```
+uv run python scripts/fetch_lexicons.py
+```
+
+`el.txt` and `el.known.txt` are the GSoC 2019 Greek morphological dictionary
+from eellak. `el.txt` supplies the correction candidates and their
+frequencies; the larger `el.known.txt` is the gate that decides what is
+already correct. The gate is worth its size: its extra million entries are
+accent-stripped all-capitals forms that cannot be derived from the others,
+since `'είναι'.upper()` is `'ΕΊΝΑΙ'`, not the `'ΕΙΝΑΙ'` an OCR'd heading
+actually contains.
+
+The other three lists protect proper nouns from correction: given names and
+surnames from Wiktionary, and Greek place names from GeoNames.
 
 ## Run
 
-Put the text you want corrected in `input/`, or point the tool at it:
+Point the tool at a directory of UTF-8 `.txt`:
 
 ```
-.venv\Scripts\python.exe lexicon_filter.py --input-dir path\to\text
+uv run greek-correct --input-dir path/to/text
 ```
 
-The corpus is never part of this repository. `input/` is only the default
-location; `LEXICON_INPUT_DIR` sets it for a whole shell session.
+With the standalone installation, use `greek-correct` without `uv run`.
+The original `uv run python lexicon_filter.py` command also works.
+
+Relative paths resolve from the current working directory, including the
+default `input/`, `lexicons/`, and output files. When running elsewhere, point
+to your word lists with `--lexicon-dir path/to/lexicons`.
+
+The corpus is never part of this repository. `LEXICON_INPUT_DIR` can set the
+input directory for a whole shell session.
 
 | flag | |
 |---|---|
 | `--input-dir <dir>` | directory of UTF-8 `.txt` to correct (default `./input`) |
+| `--lexicon-dir <dir>` | directory of word lists and optional name lists (default `./lexicons`) |
 | `--files-from <list>` | only the file names listed, one per line |
 | `--run-name <name>` | write to `lexicon_*__<name>` so a trial never overwrites a real run |
 | `--tagger {spacy,stanza}` | spaCy by default, and you want the default |
@@ -101,22 +112,49 @@ the tuning constants and the word lists all still match.
 ## Layout
 
 ```
-lexicon_filter.py    the corrector
-pyproject.toml       dependencies; uv.lock pins them exactly
-lexicons/            word lists and name lists (fetched, not tracked)
-input/               default corpus location (not tracked)
-analysis/            measurement scripts; analysis/README.md says what each
-                     one answers
+lexicon_filter.py              the corrector
+pyproject.toml                 dependencies; uv.lock pins them exactly
+lexicons/                      word lists, fetched (not tracked)
+scripts/fetch_lexicons.py      download the word lists
+scripts/build_gazetteer.py     rebuild the toponym list from GeoNames
+scripts/check_no_deletion.py   run the corrector on real text, check no word is lost
+tests/                         regression tests on small synthetic word lists
 ```
+
+## Development
+
+To install developer tools and check a change:
+
+```sh
+uv sync --locked
+uv run pytest
+uv run ruff check .
+```
+
+The tests use small synthetic word lists. Most use predetermined tokens; the
+command-line tests use the installed spaCy model. They verify code behavior,
+not accuracy on real documents with the full dictionaries.
+Ruff checks the corrector, tests and scripts for common code errors.
+
+To check the no-deletion guarantee on real text with the full word lists:
+
+```sh
+uv run python scripts/check_no_deletion.py --input-dir path/to/text --limit 6
+```
+
+These checks also run on GitHub for pushes and pull requests. When contributing
+a correction rule, include a small failing example as a regression test and
+describe why the proposed repair is safe. Keep corpus files out of commits.
 
 ## Licensing
 
 The code is GPL-3.0; see `LICENSE`.
 
-The data it depends on is not distributed here and carries its own terms:
+The word lists are data, distributed in the `lexicons-v1` release rather than
+the repository, and keep their own licenses:
 
 | | |
 |---|---|
-| eellak `gsoc2019-greek-morpho` word lists | CC BY-SA 3.0 |
+| eellak `gsoc2019-greek-morpho` dictionaries | CC BY-SA 3.0 |
+| Wiktionary given names and surnames | CC BY-SA |
 | GeoNames toponyms | CC BY 4.0 |
-| Wiktionary name and surname lists | CC BY-SA |

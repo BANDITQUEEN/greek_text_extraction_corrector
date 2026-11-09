@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "greek-text-extraction-corrector"
 version = "0.1.0"
@@ -25,7 +29,25 @@ stanza = ["stanza>=1.10"]
 [project.urls]
 Repository = "https://github.com/BANDITQUEEN/greek_text_extraction_corrector"
 
-# A single script, not a library: uv manages the environment and does not
-# try to build or install the project itself.
-[tool.uv]
-package = false
+[project.scripts]
+greek-correct = "lexicon_filter:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<10",
+    "ruff>=0.11,<1",
+]
+
+[tool.setuptools]
+py-modules = ["lexicon_filter"]
+include-package-data = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

@@ -20,7 +20,8 @@ nothing, since ••• re-decodes into ΞΞΞ quite happily.
 
 Not built yet: pre-Unicode font damage, χαρακτηρίζεται -> χαρακτθρίηεται. It
 is not a function -- θ stands for both η and ή, σ/ς are swapped -- so it needs
-candidate generation plus the same dictionary check.
+candidate generation plus the same dictionary check. Nor rejoining a word
+hyphenated across a line or page break: each half is judged on its own.
 
 Left alone: Ancient Greek (judged per file, see MIN_ANCIENT_FILE_SHARE), Latin
 script, digits, anything not monotonic Greek.
@@ -31,8 +32,7 @@ the exact-surface gate. 75 MB, untracked, from the GSoC 2019 Greek morpho
 dictionary, eellak, CC BY-SA 3.0. The capitals list earns its size:
 'είναι'.upper() is 'ΕΊΝΑΙ', not the 'ΕΙΝΑΙ' an OCR'd heading contains.
 
-    curl -Lo lexicons/el.txt https://raw.githubusercontent.com/eellak/gsoc2019-greek-morpho/master/data/spell_dict_with_freq.dic
-    curl -Lo lexicons/el.known.txt https://raw.githubusercontent.com/eellak/gsoc2019-greek-morpho/master/data/spell_dict_with_capitals_no_freq.dic
+    uv run python scripts/fetch_lexicons.py
 
 spaCy supplies tokenization, NER and part of speech; the dictionary decides
 every spelling question. Run it with:
@@ -70,12 +70,13 @@ import spacy  # noqa: E402
 from rapidfuzz import process  # noqa: E402
 from rapidfuzz.distance import DamerauLevenshtein  # noqa: E402
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-OUTPUT_ROOT = PROJECT_ROOT
+# Use the working directory, never the installed module's site-packages directory.
+WORKING_DIR = Path.cwd()
+OUTPUT_ROOT = WORKING_DIR
 
 # The corpus is never part of this project. Drop text into ./input, or point
 # --input-dir or LEXICON_INPUT_DIR at wherever it actually lives.
-DEFAULT_INPUT_DIR = PROJECT_ROOT / "input"
+DEFAULT_INPUT_DIR = WORKING_DIR / "input"
 INPUT_DIR = Path(os.environ.get("LEXICON_INPUT_DIR") or DEFAULT_INPUT_DIR)
 
 # A named run writes beside the real outputs instead of over them. The
@@ -98,7 +99,7 @@ def apply_run_name(name: str) -> None:
     UNRESOLVED_LOG = OUTPUT_ROOT / f"lexicon_unresolved{tag}.csv"
 
 
-LEXICON_DIR = PROJECT_ROOT / "lexicons"
+LEXICON_DIR = WORKING_DIR / "lexicons"
 
 # Protected from correction, never offered as a target: a name is something
 # to leave alone, not something to rewrite other words into. Tab-separated
@@ -125,11 +126,9 @@ TAGGER = "spacy"
 
 
 SEPARATOR_RE = re.compile(r"(--- page \d+[^\n]*---\n?)")
-TOKEN_RE = re.compile(r"\S+")
 LETTER_RUN_RE = re.compile(r"[^\W\d_]+")
 GREEK_RE = re.compile(r"[\u0370-\u03ff\u1f00-\u1fff]")
 POLYTONIC_RE = re.compile(r"[\u1f00-\u1fff]")
-LATIN_RE = re.compile(r"[A-Za-z\u00c0-\u024f]")
 
 POLYTONIC_COMBINING_MARKS = {"\u0313", "\u0314", "\u0342", "\u0345"}
 
@@ -479,7 +478,8 @@ def find_correction(
         source_key,
         candidate_pool,
         scorer=DamerauLevenshtein.normalized_similarity,
-        score_cutoff=MIN_CORRECTION_SIMILARITY,
+        # Keep close runners-up even below the minimum score: dropping them
+        # here can make an ambiguous correction pass the margin check below.
         limit=2,
     )
     if not matches:
@@ -719,7 +719,7 @@ def collect_chunks(files):
     # A changed lexicon invalidates stored spans just as changed input does.
     input_hasher.update(
         (
-            f"correction-v4:{MIN_CORRECTION_LENGTH}:"
+            f"correction-v5:{MIN_CORRECTION_LENGTH}:"
             f"{MAX_CORRECTION_LENGTH}:{MIN_CORRECTION_SIMILARITY}:"
             f"{MIN_CORRECTION_MARGIN}:{MAX_CORRECTION_DISTANCE}:"
             f"{MIN_CANDIDATE_FREQUENCY}:{TAGGER}:encoding-v1:enclitic-v3:caption-v2:"
@@ -738,19 +738,13 @@ def collect_chunks(files):
                     break
                 input_hasher.update(block)
 
-    for route in ("el", "grc", "en", "de"):
-        input_hasher.update(route.encode("ascii"))
-        # The gate decides what is never corrected, so it invalidates too.
-        for suffix in (".txt", ".known.txt"):
-            lexicon_path = LEXICON_DIR / f"{route}{suffix}"
-            if lexicon_path.exists():
-                hash_file(lexicon_path)
-            else:
-                input_hasher.update(b"model-derived")
-    for name_file in NAME_LISTS:
-        name_path = LEXICON_DIR / name_file
-        if name_path.exists():
-            hash_file(name_path)
+    # Every word list decides corrections -- the gate as much as the
+    # candidates -- so a changed list invalidates the checkpoint too.
+    for lexicon_file in (f"{ROUTE}.txt", f"{ROUTE}.known.txt", *NAME_LISTS):
+        lexicon_path = LEXICON_DIR / lexicon_file
+        if lexicon_path.exists():
+            input_hasher.update(lexicon_file.encode("utf-8"))
+            hash_file(lexicon_path)
     return per_file_parts, flat_chunks, chunk_owner, input_hasher.hexdigest()
 
 def all_model_names():
@@ -922,8 +916,8 @@ def make_correction_lexicon(route: str):
     for required in (candidate_path, known_path):
         if not required.exists():
             raise RuntimeError(
-                f"Missing word list {required}. The module docstring has "
-                f"the two curl commands that fetch it."
+                f"Missing word list {required}. Fetch it from the repository "
+                f"with: uv run python scripts/fetch_lexicons.py"
             )
 
     known_surfaces = set(_known_surfaces(known_path))
@@ -1272,6 +1266,10 @@ def parse_args(argv=None):
         help="directory of UTF-8 .txt to correct (default: ./input, or "
              "$LEXICON_INPUT_DIR)",
     )
+    parser.add_argument(
+        "--lexicon-dir", type=Path, default=None,
+        help="directory containing word lists and optional name lists (default: ./lexicons)",
+    )
     return parser.parse_args(argv)
 
 
@@ -1292,13 +1290,20 @@ def select_files(files_from: Path | None):
 
 
 def main(argv=None) -> None:
-    global TAGGER, INPUT_DIR
+    global TAGGER, INPUT_DIR, LEXICON_DIR
     args = parse_args(argv)
     TAGGER = args.tagger
     if args.input_dir is not None:
         INPUT_DIR = args.input_dir
+    if args.lexicon_dir is not None:
+        LEXICON_DIR = args.lexicon_dir
     apply_run_name(args.run_name)
 
+    if not INPUT_DIR.is_dir():
+        raise SystemExit(
+            f"Input directory not found: {INPUT_DIR}\n"
+            "Pass --input-dir <dir> or set LEXICON_INPUT_DIR."
+        )
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     files = select_files(args.files_from)
     print(
@@ -1368,7 +1373,8 @@ def main(argv=None) -> None:
 
     for file_idx, path in enumerate(files):
         text = "".join(chunk for _, chunk in per_file_parts[file_idx])
-        (OUTPUT_DIR / path.name).write_text(text, encoding="utf-8")
+        # Keep original line endings; text-mode writes translate them on Windows.
+        (OUTPUT_DIR / path.name).write_bytes(text.encode("utf-8"))
         print(f"[{file_idx + 1}/{len(files)}] {path.name}", flush=True)
 
     # Already in the text; folded in now, after filter_chunk, only so the
