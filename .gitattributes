@@ -1,4 +1,4 @@
-# Keep the repository and the working tree on LF everywhere. The "every
-# corpus file is CRLF" trap in the handoff is a property of the input data,
-# and should never become a property of the source.
+# Keep the repository and the working tree on LF everywhere. Input text is
+# often CRLF; that is a property of the data and must never leak into the
+# source.
 * text=auto eol=lf
