@@ -41,6 +41,13 @@ def test_checksum_mismatch_is_refused(tmp_path):
         fetch_lexicons.download(url, "0" * 64)
 
 
+def test_default_destination_is_the_user_folder(tmp_path, monkeypatch):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    expected = tmp_path / "greek-correct" / "lexicons"
+    assert fetch_lexicons.parse_args([]).lexicon_dir == expected
+
+
 def test_local_edit_is_kept_unless_forced(tmp_path):
     lexicon_dir = tmp_path / "lexicons"
     lexicon_dir.mkdir()
