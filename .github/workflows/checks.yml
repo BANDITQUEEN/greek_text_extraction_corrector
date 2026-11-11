@@ -11,11 +11,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            python: "3.10"
-          - os: windows-latest
-            python: "3.11"
+        os: [ubuntu-latest, windows-latest]
+        # The oldest Python still getting security fixes, and the newest
+        # one spaCy 3.8.14 ships ready-made packages for.
+        python: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
