@@ -62,7 +62,8 @@ Python 3.13; the corrector also runs on 3.11 and 3.12.
    uv sync --locked
    ```
 
-3. Download the word lists into `lexicons/` (12 MB):
+3. Download the word lists (12 MB) into your user folder, where
+   `greek-correct` always finds them:
 
    ```
    uv run python scripts/fetch_lexicons.py
@@ -74,6 +75,16 @@ Python 3.13; the corrector also runs on 3.11 and 3.12.
    uv run greek-correct --help
    ```
 
+### Optional: use it from any folder
+
+Inside the cloned folder, install `greek-correct` as a command of its own.
+Then it works from any folder, without `uv run`:
+
+```
+uv tool install --python 3.13 .
+greek-correct --input-dir path/to/text
+```
+
 ## Run
 
 Point the tool at a directory of UTF-8 `.txt`:
@@ -84,9 +95,8 @@ uv run greek-correct --input-dir path/to/text
 
 The original `uv run python lexicon_filter.py` command also works.
 
-Relative paths resolve from the current working directory, including the
-default `input/`, `lexicons/`, and output files. When running elsewhere, point
-to your word lists with `--lexicon-dir path/to/lexicons`.
+Relative paths are read from the current folder, and the results are written
+there too, unless you pass `--output-dir`.
 
 The corpus is never part of this repository. `LEXICON_INPUT_DIR` can set the
 input directory for a whole shell session.
@@ -94,13 +104,14 @@ input directory for a whole shell session.
 | flag | what it does |
 |---|---|
 | `--input-dir <dir>` | the folder with the `.txt` files to correct. Default: `input` |
-| `--lexicon-dir <dir>` | the folder with the word lists. Default: `lexicons`, where step 3 of Install puts all five. `el.txt` and `el.known.txt` are required. The three name lists are used when they're there; without them, some names are changed by mistake |
+| `--output-dir <dir>` | the folder for the results. Default: the current folder |
+| `--lexicon-dir <dir>` | the folder with the word lists. Default: a `lexicons` folder in the current folder if there is one, otherwise your user folder, where step 3 of Install puts all five. `el.txt` and `el.known.txt` are required. The three name lists are used when they're there; without them, some names are changed by mistake |
 | `--files-from <list>` | correct only some of the files. `<list>` is a text file with one file name per line, such as `report_01.txt`, all from the input folder |
 | `--run-name <name>` | keep a trial run apart from your results. Its outputs get the name added, so `--run-name test` writes `lexicon_corrections__test.csv` and nothing earlier is overwritten |
 | `--tagger {spacy,stanza}` | the tool that splits the text into words and recognises names: `spacy` (the default) or `stanza`. Stanza needs `uv sync --extra stanza` and blocks thousands of corrections that spaCy makes |
 
-Outputs: the corrected text in `lexicon_filtered/`, every substitution in
-`lexicon_corrections.csv`, and every token left alone in
+Outputs, in the output folder: the corrected text in `lexicon_filtered/`,
+every substitution in `lexicon_corrections.csv`, and every token left alone in
 `lexicon_unresolved.csv` with its reason.
 
 A finished pass saves a compressed checkpoint, reused only when the inputs,
@@ -110,7 +121,9 @@ the tuning constants and the word lists all still match.
 
 The word lists are not in the repository. `scripts/fetch_lexicons.py`
 downloads them as one 12 MB zip from this repository's `lexicons-v1` release,
-checks it against a SHA-256, and only then unpacks it into `lexicons/`.
+checks it against a SHA-256, and only then unpacks it into your user folder:
+`%LOCALAPPDATA%\greek-correct\lexicons` on Windows,
+`~/.local/share/greek-correct/lexicons` on macOS and Linux.
 
 `el.txt` and `el.known.txt` are the GSoC 2019 Greek morphological dictionary
 from eellak. `el.txt` supplies the correction candidates and their
@@ -128,7 +141,6 @@ surnames from Wiktionary, and Greek place names from GeoNames.
 ```
 lexicon_filter.py              the corrector
 pyproject.toml                 dependencies; uv.lock pins them exactly
-lexicons/                      word lists, fetched (not tracked)
 scripts/fetch_lexicons.py      download the word lists
 scripts/build_gazetteer.py     rebuild the toponym list from GeoNames
 scripts/check_no_deletion.py   run the corrector on real text, check no word is lost
@@ -140,7 +152,7 @@ add `--help` to see its options.
 
 ## Development
 
-To install developer tools and check a change:
+To run the tests and the code checks:
 
 ```sh
 uv sync --locked
