@@ -8,18 +8,26 @@ import sysconfig
 import pytest
 
 
-@pytest.mark.parametrize("explicit_lexicon_dir", [False, True])
+@pytest.mark.parametrize("lexicon_location", ["working-dir", "flag", "user-folder"])
 def test_installed_command_from_another_directory(
-    tmp_path, monkeypatch, explicit_lexicon_dir
+    tmp_path, monkeypatch, lexicon_location
 ):
     command = shutil.which("greek-correct", path=sysconfig.get_path("scripts"))
     assert command is not None, "Install the command first with uv sync --locked"
     monkeypatch.delenv("LEXICON_INPUT_DIR", raising=False)
+    # Keep the real user folder out of it, whatever the platform.
+    user_data = tmp_path / "userdata"
+    monkeypatch.setenv("LOCALAPPDATA", str(user_data))
+    monkeypatch.setenv("XDG_DATA_HOME", str(user_data))
     work_dir = tmp_path / "work"
     input_dir = work_dir / "input"
     input_dir.mkdir(parents=True)
-    lexicon_dir = tmp_path / "wordlists" if explicit_lexicon_dir else work_dir / "lexicons"
-    lexicon_dir.mkdir()
+    lexicon_dir = {
+        "working-dir": work_dir / "lexicons",
+        "flag": tmp_path / "wordlists",
+        "user-folder": user_data / "greek-correct" / "lexicons",
+    }[lexicon_location]
+    lexicon_dir.mkdir(parents=True)
     (lexicon_dir / "el.txt").write_text("καλημέρα 100\n", encoding="utf-8")
     (lexicon_dir / "el.known.txt").write_text("καλημέρα\n", encoding="utf-8")
     damaged = "καλημέρα".encode("iso8859_7").decode("cp1252")
@@ -28,7 +36,7 @@ def test_installed_command_from_another_directory(
     source.write_bytes(original)
 
     args = [command]
-    if explicit_lexicon_dir:
+    if lexicon_location == "flag":
         args.extend(["--lexicon-dir", str(lexicon_dir)])
     result = subprocess.run(
         args, cwd=work_dir, capture_output=True, encoding="utf-8", timeout=60

@@ -1,10 +1,14 @@
-"""Download the word lists the corrector uses into lexicons/.
+"""Download the word lists the corrector uses into your user folder.
 
 All five lists ship as one zip attached to this repository's GitHub release
 lexicons-v1, together with a README naming each list's source and license.
 The zip is checked against a SHA-256 before anything is unpacked.
 
     uv run python scripts/fetch_lexicons.py
+
+They go to one folder per user account (%LOCALAPPDATA%\\greek-correct\\lexicons
+on Windows, ~/.local/share/greek-correct/lexicons elsewhere), where every
+copy of greek-correct finds them. --lexicon-dir puts them somewhere else.
 
 A list that already matches the release is left as it is. One that differs,
 such as a toponym list you rebuilt, is kept unless you pass --force.
@@ -20,6 +24,8 @@ import sys
 import urllib.request
 import zipfile
 from pathlib import Path
+
+from lexicon_filter import user_lexicon_dir
 
 RELEASE = "lexicons-v1"
 URL = (
@@ -68,16 +74,24 @@ def unpack(data, lexicon_dir, force):
     return kept
 
 
-def main():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--lexicon-dir", type=Path, default=Path("lexicons"),
-                        help="where to put the word lists (default: ./lexicons)")
+    parser.add_argument("--lexicon-dir", type=Path, default=user_lexicon_dir(),
+                        help="where to put the word lists (default: %(default)s)")
     parser.add_argument("--force", action="store_true",
                         help="replace lists that differ from the release")
-    args = parser.parse_args()
+    return parser.parse_args(argv)
 
+
+def main(argv=None):
+    args = parse_args(argv)
+    print(f"word lists folder: {args.lexicon_dir}", flush=True)
     if unpack(download(URL, SHA256), args.lexicon_dir, args.force):
         sys.exit(1)
+    local = Path("lexicons")
+    if local.is_dir() and local.resolve() != args.lexicon_dir.resolve():
+        print("note: greek-correct started in this folder uses ./lexicons "
+              "instead, because it comes first")
 
 
 if __name__ == "__main__":

@@ -26,11 +26,13 @@ hyphenated across a line or page break: each half is judged on its own.
 Left alone: Ancient Greek (judged per file, see MIN_ANCIENT_FILE_SHARE), Latin
 script, digits, anything not monotonic Greek.
 
-The word lists in lexicons/ are required, not optional. el.txt supplies
-candidates (word, optional tab- or space-separated frequency), el.known.txt
-the exact-surface gate. 75 MB, untracked, from the GSoC 2019 Greek morpho
-dictionary, eellak, CC BY-SA 3.0. The capitals list earns its size:
-'είναι'.upper() is 'ΕΊΝΑΙ', not the 'ΕΙΝΑΙ' an OCR'd heading contains.
+The word lists are required, not optional. el.txt supplies candidates (word,
+optional tab- or space-separated frequency), el.known.txt the exact-surface
+gate. 75 MB, untracked, from the GSoC 2019 Greek morpho dictionary, eellak,
+CC BY-SA 3.0. The capitals list earns its size: 'είναι'.upper() is 'ΕΊΝΑΙ',
+not the 'ΕΙΝΑΙ' an OCR'd heading contains. fetch_lexicons.py puts them in one
+folder per user account (user_lexicon_dir), where every copy of the command
+finds them; a lexicons/ folder in the working directory comes first.
 
     uv run python scripts/fetch_lexicons.py
 
@@ -99,7 +101,22 @@ def apply_run_name(name: str) -> None:
     UNRESOLVED_LOG = OUTPUT_ROOT / f"lexicon_unresolved{tag}.csv"
 
 
-LEXICON_DIR = WORKING_DIR / "lexicons"
+def user_lexicon_dir(platform: str | None = None) -> Path:
+    """The word-list folder of this user account, filled by fetch_lexicons.py."""
+    if (platform or sys.platform) == "win32":
+        base = os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local"
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"
+    return Path(base) / "greek-correct" / "lexicons"
+
+
+def default_lexicon_dir(working_dir: Path = WORKING_DIR) -> Path:
+    """./lexicons when the working directory has one, else the user's folder."""
+    local = working_dir / "lexicons"
+    return local if local.is_dir() else user_lexicon_dir()
+
+
+LEXICON_DIR = default_lexicon_dir()
 
 # Protected from correction, never offered as a target: a name is something
 # to leave alone, not something to rewrite other words into. Tab-separated
@@ -905,20 +922,30 @@ def _paradigm_surfaces(path: Path) -> set[str]:
     return surfaces
 
 
+def require_word_lists(route: str) -> None:
+    """Stop with a plain message, before any work, if a required list is missing."""
+    missing = [
+        name for name in (f"{route}.txt", f"{route}.known.txt")
+        if not (LEXICON_DIR / name).is_file()
+    ]
+    if missing:
+        raise SystemExit(
+            f"Word lists not found in {LEXICON_DIR}: {', '.join(missing)}\n"
+            "Download them from the cloned repository with:\n"
+            "    uv run python scripts/fetch_lexicons.py\n"
+            "or point to them with --lexicon-dir <dir>."
+        )
+
+
 def make_correction_lexicon(route: str):
     """Load the correction candidates and known-word gate for one route.
 
     The word lists are required, not optional: the spaCy vector keys they
     replaced are web-scraped, and 36.8% of the Greek ones are not words.
     """
+    require_word_lists(route)
     candidate_path = LEXICON_DIR / f"{route}.txt"
     known_path = LEXICON_DIR / f"{route}.known.txt"
-    for required in (candidate_path, known_path):
-        if not required.exists():
-            raise RuntimeError(
-                f"Missing word list {required}. Fetch it from the repository "
-                f"with: uv run python scripts/fetch_lexicons.py"
-            )
 
     known_surfaces = set(_known_surfaces(known_path))
     name_forms = 0
@@ -1255,11 +1282,11 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--files-from", type=Path, default=None,
-        help="run only the input file names listed in this file, one per line",
+        help="correct only the files named in this list, one file name per line",
     )
     parser.add_argument(
         "--run-name", default="",
-        help="write outputs to run-specific paths instead of the canonical ones",
+        help="add __<name> to the output names, so a trial run overwrites nothing",
     )
     parser.add_argument(
         "--input-dir", type=Path, default=None,
@@ -1268,7 +1295,13 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--lexicon-dir", type=Path, default=None,
-        help="directory containing word lists and optional name lists (default: ./lexicons)",
+        help="directory of the word lists (default: ./lexicons if it exists, "
+             f"otherwise {user_lexicon_dir()})",
+    )
+    parser.add_argument(
+        "--output-dir", type=Path, default=None,
+        help="directory for the corrected text, both CSVs and the checkpoint "
+             "(default: the current directory)",
     )
     return parser.parse_args(argv)
 
@@ -1290,13 +1323,15 @@ def select_files(files_from: Path | None):
 
 
 def main(argv=None) -> None:
-    global TAGGER, INPUT_DIR, LEXICON_DIR
+    global TAGGER, INPUT_DIR, LEXICON_DIR, OUTPUT_ROOT
     args = parse_args(argv)
     TAGGER = args.tagger
     if args.input_dir is not None:
         INPUT_DIR = args.input_dir
     if args.lexicon_dir is not None:
         LEXICON_DIR = args.lexicon_dir
+    if args.output_dir is not None:
+        OUTPUT_ROOT = args.output_dir
     apply_run_name(args.run_name)
 
     if not INPUT_DIR.is_dir():
@@ -1304,6 +1339,7 @@ def main(argv=None) -> None:
             f"Input directory not found: {INPUT_DIR}\n"
             "Pass --input-dir <dir> or set LEXICON_INPUT_DIR."
         )
+    require_word_lists(ROUTE)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     files = select_files(args.files_from)
     print(

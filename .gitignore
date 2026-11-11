@@ -1,5 +1,6 @@
-# Word lists, fetched from the lexicons-v1 release by scripts/fetch_lexicons.py.
-# They are data, never part of the repository.
+# Word lists, for anyone who keeps them here instead of in the user folder
+# that scripts/fetch_lexicons.py fills. They are data, never part of the
+# repository.
 lexicons/
 
 # The default corpus location. The corpus is never part of this project.
