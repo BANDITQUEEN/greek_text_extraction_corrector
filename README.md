@@ -35,35 +35,82 @@ like Greek proves nothing: `•••` re-decodes into `ΞΞΞ` quite happily.
 
 ## Install
 
-Python 3.10 or newer and [uv](https://docs.astral.sh/uv/) are required.
-From the cloned repository:
+You need [git](https://git-scm.com/downloads) and
+[uv](https://docs.astral.sh/uv/). uv installs everything else, including
+Python 3.13; the corrector also runs on 3.11 and 3.12.
+
+1. Install uv, once per computer. On Windows:
+
+   ```
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+   On macOS and Linux:
+
+   ```
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+   Then open a new terminal, so that it finds `uv`.
+
+2. Get the code and install the corrector. The first time, this downloads
+   about 115 MB, including Python and the Greek spaCy model.
+
+   ```
+   git clone https://github.com/BANDITQUEEN/greek_text_extraction_corrector.git
+   cd greek_text_extraction_corrector
+   uv sync --locked
+   ```
+
+3. Download the word lists into `lexicons/` (12 MB):
+
+   ```
+   uv run python scripts/fetch_lexicons.py
+   ```
+
+4. Check that it works:
+
+   ```
+   uv run greek-correct --help
+   ```
+
+## Run
+
+Point the tool at a directory of UTF-8 `.txt`:
 
 ```
-uv sync --locked
+uv run greek-correct --input-dir path/to/text
 ```
 
-This installs `greek-correct` in `.venv` with the dependencies from `uv.lock`,
-including the Greek spaCy model.
+The original `uv run python lexicon_filter.py` command also works.
 
-To install a standalone command that you can run from other directories:
+Relative paths resolve from the current working directory, including the
+default `input/`, `lexicons/`, and output files. When running elsewhere, point
+to your word lists with `--lexicon-dir path/to/lexicons`.
 
-```
-uv tool install .
-greek-correct --help
-```
+The corpus is never part of this repository. `LEXICON_INPUT_DIR` can set the
+input directory for a whole shell session.
 
-If uv reports that its tools directory is missing from PATH, run
-`uv tool update-shell` and open a new terminal. The standalone installation
-uses the package's dependency requirements; `uv sync --locked` uses the exact
-versions in this repository's lockfile.
+| flag | what it does |
+|---|---|
+| `--input-dir <dir>` | the folder with the `.txt` files to correct. Default: `input` |
+| `--lexicon-dir <dir>` | the folder with the word lists. Default: `lexicons`, where step 3 of Install puts all five. `el.txt` and `el.known.txt` are required. The three name lists are used when they're there; without them, some names are changed by mistake |
+| `--files-from <list>` | correct only some of the files. `<list>` is a text file with one file name per line, such as `report_01.txt`, all from the input folder |
+| `--run-name <name>` | keep a trial run apart from your results. Its outputs get the name added, so `--run-name test` writes `lexicon_corrections__test.csv` and nothing earlier is overwritten |
+| `--tagger {spacy,stanza}` | the tool that splits the text into words and recognises names: `spacy` (the default) or `stanza`. Stanza needs `uv sync --extra stanza` and blocks thousands of corrections that spaCy makes |
 
-Then fetch the word lists into `lexicons/`. They are not in the repository:
-they come as one 12 MB zip from this repository's `lexicons-v1` release, and
-the zip is checked against a SHA-256 before anything is unpacked:
+Outputs: the corrected text in `lexicon_filtered/`, every substitution in
+`lexicon_corrections.csv`, and every token left alone in
+`lexicon_unresolved.csv` with its reason.
 
-```
-uv run python scripts/fetch_lexicons.py
-```
+A finished pass saves a compressed checkpoint, reused only when the inputs,
+the tuning constants and the word lists all still match.
+
+## Word lists
+
+The word lists are not in the repository. `scripts/fetch_lexicons.py`
+downloads them as one 12 MB zip from this repository's `lexicons-v1` release,
+checks it against a SHA-256, and only then unpacks it into `lexicons/`.
 
 `el.txt` and `el.known.txt` are the GSoC 2019 Greek morphological dictionary
 from eellak. `el.txt` supplies the correction candidates and their
@@ -76,39 +123,6 @@ actually contains.
 The other three lists protect proper nouns from correction: given names and
 surnames from Wiktionary, and Greek place names from GeoNames.
 
-## Run
-
-Point the tool at a directory of UTF-8 `.txt`:
-
-```
-uv run greek-correct --input-dir path/to/text
-```
-
-With the standalone installation, use `greek-correct` without `uv run`.
-The original `uv run python lexicon_filter.py` command also works.
-
-Relative paths resolve from the current working directory, including the
-default `input/`, `lexicons/`, and output files. When running elsewhere, point
-to your word lists with `--lexicon-dir path/to/lexicons`.
-
-The corpus is never part of this repository. `LEXICON_INPUT_DIR` can set the
-input directory for a whole shell session.
-
-| flag | |
-|---|---|
-| `--input-dir <dir>` | directory of UTF-8 `.txt` to correct (default `./input`) |
-| `--lexicon-dir <dir>` | directory of word lists and optional name lists (default `./lexicons`) |
-| `--files-from <list>` | only the file names listed, one per line |
-| `--run-name <name>` | write to `lexicon_*__<name>` so a trial never overwrites a real run |
-| `--tagger {spacy,stanza}` | spaCy by default, and you want the default |
-
-Outputs: the corrected text in `lexicon_filtered/`, every substitution in
-`lexicon_corrections.csv`, and every token left alone in
-`lexicon_unresolved.csv` with its reason.
-
-A finished pass saves a compressed checkpoint, reused only when the inputs,
-the tuning constants and the word lists all still match.
-
 ## Layout
 
 ```
@@ -120,6 +134,9 @@ scripts/build_gazetteer.py     rebuild the toponym list from GeoNames
 scripts/check_no_deletion.py   run the corrector on real text, check no word is lost
 tests/                         regression tests on small synthetic word lists
 ```
+
+Run a script from the cloned folder with `uv run python scripts/<name>.py`;
+add `--help` to see its options.
 
 ## Development
 
