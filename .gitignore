@@ -6,6 +6,12 @@ lexicons/
 # The default corpus location. The corpus is never part of this project.
 input/
 
+# Airflow, run with Docker: the pipeline's data, its task logs, and local
+# settings such as AIRFLOW_UID.
+data/
+airflow/logs/
+airflow/.env
+
 # Everything the corrector produces. Regenerate by running it.
 lexicon_filtered/
 lexicon_filtered__*/

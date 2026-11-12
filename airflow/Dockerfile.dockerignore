@@ -1,0 +1,11 @@
+# The image needs only what installs the corrector. Everything else stays out
+# of the build, including .venv, data/ and any local notes.
+*
+!pyproject.toml
+!uv.lock
+!.python-version
+!README.md
+!LICENSE
+!lexicon_filter.py
+!scripts/
+**/__pycache__
