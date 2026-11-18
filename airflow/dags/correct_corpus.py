@@ -3,8 +3,8 @@
 import subprocess
 from hashlib import sha256
 from pathlib import Path
-
-from airflow.sdk import Param, dag, task, task_group
+from zoneinfo import ZoneInfo
+from airflow.sdk import Param, dag, get_current_context, task, task_group
 
 DATA_DIR = Path("/opt/airflow/data")
 INPUT_DIR = Path("/opt/airflow/raw")
@@ -16,7 +16,11 @@ CHECK_SCRIPT = "/opt/corrector/scripts/check_no_deletion.py"
 
 
 def run_key(run_id: str) -> str:
-    return sha256(run_id.encode("utf-8")).hexdigest()[:16]
+    dag_run = get_current_context()["dag_run"]
+    local_time = dag_run.run_after.astimezone(ZoneInfo("Europe/Athens"))
+    timestamp = local_time.strftime("%Y-%m-%d_%H-%M-%S")
+    digest = sha256(run_id.encode("utf-8")).hexdigest()[:16]
+    return f"{timestamp}__{digest}"
 
 
 def run_command(*args: str) -> None:
