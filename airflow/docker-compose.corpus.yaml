@@ -1,0 +1,9 @@
+services:
+  airflow-scheduler:
+    volumes:
+      - type: bind
+        source: ${CORPUS_DIR:?Set CORPUS_DIR before starting Compose}
+        target: /opt/airflow/raw
+        read_only: true
+        bind:
+          create_host_path: false
